@@ -13,6 +13,10 @@
 # avg_node_1 = 0
 # while True:
 #     msg = bus.recv()
+
+
+
+# sdasdasd
 #     print(f"\n{msg.arbitration_id:03x} {msg.data} {msg.timestamp}")
     
 #     if msg.arbitration_id == 0x80:
