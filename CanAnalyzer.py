@@ -431,6 +431,8 @@ class BottomWindowNMT(QMainWindow):
         self.setEnabled(True)
         
         self.device_list = []
+        # UART BAUDRATE
+        self.baudrate = 230400
 
         # CAN Vars
         self.cobid = 0
@@ -470,6 +472,7 @@ class BottomWindowNMT(QMainWindow):
 
         # NMT Layout
         nmt_layout = QHBoxLayout()
+        nmt_layout.setEnabled(False)
         nmt_layout.setContentsMargins(10,5,10,0)
         self.nmt_label = QLabel("NMT:")
         self.nmt_label.setStyleSheet('border:0px; font: bold 12px;')
@@ -528,6 +531,16 @@ class BottomWindowNMT(QMainWindow):
         sync_layout.addWidget(self.sync_button)
         main_layout.addLayout(sync_layout)
 
+        # Default ENABLE False
+        self.device_id_combobox.setEnabled(False)
+        self.cmd_combobox.setEnabled(False)
+        self.send_btn.setEnabled(False)
+        self.heartbeat_combobox.setEnabled(False)
+        self.heartbeat_line.setEnabled(False)
+        self.heartbeat_button.setEnabled(False)
+        self.sync_line.setEnabled(False)
+        self.sync_button.setEnabled(False)
+
 
         widget = QWidget()
         widget.setLayout(main_layout)
@@ -558,6 +571,31 @@ class BottomWindowNMT(QMainWindow):
     #     else:
     #         self.destination = int(self.device_id_combobox.currentText())
 
+    def com_combobox_activated(self):
+        # CHECK COM PORT SELECTION
+        selected_port = self.com_combobox.currentText()
+        if selected_port != "PORT":
+            port = Serial(f'{selected_port}', self.baudrate, timeout=0.3)
+            #TODO: CREATE PROPER CMD
+            command = ('cmd_hs' + '\r\n').encode()
+            port.write(command)
+            sleep(0.8)
+            resp = port.read_all().decode()
+            port.close()
+            #TODO: CHECK PROPER RESP
+            print(f'RESP: {resp}')
+            if "OK" in resp:
+                self.device_id_combobox.setEnabled(True)
+                self.cmd_combobox.setEnabled(True)
+                self.send_btn.setEnabled(True)
+                self.heartbeat_combobox.setEnabled(True)
+                self.heartbeat_line.setEnabled(True)
+                self.heartbeat_button.setEnabled(True)
+                self.sync_line.setEnabled(True)
+                self.sync_button.setEnabled(True)
+            else:
+                print("No response from M0")
+
     def nmt_send_command(self):
         if self.device_id_combobox.currentText() == 'All':
             device_id = '00'
@@ -579,8 +617,6 @@ class BottomWindowNMT(QMainWindow):
         msg = f'cmd_nmt_{nmt_cmd}_{device_id}'
         print(msg)
 
-    def com_combobox_activated(self):
-        pass
 
     def heartbeat_button_pressed(self):
         if self.heartbeat_combobox.currentText() == 'All':
