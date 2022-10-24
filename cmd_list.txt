@@ -1,0 +1,7 @@
+cmd_hs
+cmd_set_param
+cmd_send_mcan_msg
+cmd_cnfg_mcan_msg
+cmd_send_mcan_msg_prd
+cmd_help
+

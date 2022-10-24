@@ -1,20 +1,12 @@
-import can, canopen
+from serial import Serial
 from time import sleep
 
-network = canopen.Network()
-# network.connect(bustype='pcan', channel='PCAN_USBBUS2', bitrate=1000000)
-bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS2', bitrate=1000000)
-node = network.add_node(4, 'PEAK.eds')
-
-# bitrate = "BPS0"
-# bitrate_bytes = bitrate.encode()
-# print(bitrate_bytes)
-# node.sdo.download(0x1f50, 3, bitrate_bytes)
-network.bus = bus
-
-while True:
-    
-    listeners = network.listeners
-    
-    notifier = can.Notifier(bus, listeners, 0.5)
-    print(notifier.data)
+port = Serial(f'COM9', 230400, timeout=0.3)
+#TODO: CREATE PROPER CMD
+command = ('cmd_hs'+'\r\n').encode()
+port.write(command)
+sleep(0.8)
+resp = port.read_all()
+port.close()
+#TODO: CHECK PROPER RESP
+print(f'RESP: {resp}')

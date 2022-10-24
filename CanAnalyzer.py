@@ -1,7 +1,6 @@
 
 from re import T
 import sys, can, canopen
-from tkinter.tix import Tree
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -1511,6 +1510,9 @@ class WindowM0(QMainWindow):
         self.setStyleSheet('border:1px solid rgb(124, 124, 124);')
         self.setEnabled(True)
 
+        # UART BAUDRATE
+        self.baudrate = 230400
+
         # CAN BUS
         self.bus = None
         self.network = None
@@ -1547,11 +1549,15 @@ class WindowM0(QMainWindow):
         self.cmd_combobox = QComboBox()
         self.cmd_combobox.setEnabled(False)
         self.cmd_combobox.setFixedWidth(150)
-        self.cmd_list = [
-            "send_cmd_1",
-            "send_cmd_2",
-            "send_cmd_3"
-        ]
+        self.cmd_list = []
+        try:
+            with open('cmd_list.txt', 'r') as f:
+                for line in f:
+                    if line.strip() != '':
+                        cmd = line.replace('\n', '')
+                        self.cmd_list.append(cmd)
+        except FileNotFoundError:
+            print("ERROR: cmd_list.txt FILE NOT FOUND")
         self.cmd_combobox.addItems(self.cmd_list)
         self.cmd_combobox.activated.connect(self.cmd_combobox_activated)
         cmd_layout.addWidget(self.cmd_combobox)
@@ -1577,15 +1583,16 @@ class WindowM0(QMainWindow):
         # CHECK COM PORT SELECTION
         selected_port = self.com_combobox.currentText()
         if selected_port != "PORT":
-            port = Serial(f'{selected_port}', 115200, timeout=0.3)
+            port = Serial(f'{selected_port}', self.baudrate, timeout=0.3)
             #TODO: CREATE PROPER CMD
-            command = ('CHECK_STATUS' + '\r').encode()
+            command = ('cmd_hs' + '\r\n').encode()
             port.write(command)
-            resp = port.read_until(b'\r').decode()
+            sleep(0.8)
+            resp = port.read_all().decode()
             port.close()
             #TODO: CHECK PROPER RESP
-            if resp == "M0_OK":
-                print("M0 Connected")
+            print(f'RESP: {resp}')
+            if "OK" in resp:
                 self.cmd_combobox.setEnabled(True)
                 self.arg_line.setEnabled(True)
                 self.send_button.setEnabled(True)
@@ -1596,6 +1603,7 @@ class WindowM0(QMainWindow):
         pass
 
     def send_button_pressed(self):
+        print("BUTTON PUSHED")
         # COM PORT
         selected_port = self.com_combobox.currentText()
         # CMD
@@ -1603,13 +1611,16 @@ class WindowM0(QMainWindow):
         # ARGS
         selected_arg = self.arg_line.text()
         # SEND CMD
-        port = Serial(f'{selected_port}', 115200, timeout=0.3)
+        port = Serial(f'{selected_port}', self.baudrate, timeout=0.3)
         if selected_arg == "":
-            command = (f'{selected_cmd}\r').encode()
+            command = (f'{selected_cmd}\r\n').encode()
         else:
-            command = (f'{selected_cmd} {selected_arg}\r').encode()
+            command = (f'{selected_cmd} {selected_arg}\r\n').encode()
         port.write(command)
+        sleep(0.8)
+        resp = port.read_all().decode()
         port.close()
+        print(resp)
         
     
 
