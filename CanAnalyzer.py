@@ -142,6 +142,7 @@ class MainWindow(QMainWindow):
         self.window_pdo = BottomWindowPDO()
         self.window_sync = WindowSYNC()
         self.window_m0 = WindowM0()
+        self.spacer = QSpacerItem(20, 200, QSizePolicy.Minimum, QSizePolicy.Minimum)
         
         layout_buttons.setAlignment(Qt.AlignLeft)
 
@@ -154,15 +155,20 @@ class MainWindow(QMainWindow):
         layout_bottom.addWidget(self.window_scanbus)
         
         layout_bottom_left = QVBoxLayout()
+        layout_bottom_left.setContentsMargins(0,1,0,0)
         
         layout_bottom_left.addWidget(self.window_nmt)
         layout_bottom_left.addWidget(self.window_sdo)
         layout_bottom_left.addWidget(self.window_pdo)
-        layout_bottom_left.addWidget(self.window_sync)
-        layout_bottom_left.addWidget(self.window_m0)
+        # layout_bottom_left.addWidget(self.window_sync)
+        # layout_bottom_left.addWidget(self.window_m0)
+        layout_bottom_left.addItem(self.spacer)
+        
+
         
         layout_bottom.addLayout(layout_bottom_left)
         # layout_bottom.setAlignment(Qt.AlignTop)
+        
 
         layout_main.addLayout(layout_bottom)
         
@@ -420,10 +426,11 @@ class BottomWindowScanBus(QMainWindow):
 class BottomWindowNMT(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setFixedSize(600, 150)
+        self.setFixedSize(600, 155)
         self.setStyleSheet('border:1px solid rgb(124, 124, 124);')
-        self.setEnabled(False)
+        self.setEnabled(True)
         
+        self.device_list = []
 
         # CAN Vars
         self.cobid = 0
@@ -433,8 +440,8 @@ class BottomWindowNMT(QMainWindow):
 
         self.bus = None
 
-        self.name = QLabel("NMT Config")
-        self.name.setStyleSheet('font: bold 14px; border: 1px solid rgb(124, 124, 124); padding: 5px;background-color: rgb(255, 204, 153);')
+        self.name = QLabel("Master Device Config")
+        self.name.setStyleSheet('font: bold 14px; border: 1px solid rgb(124, 124, 124); padding: 5px;background-color: rgb(255, 153, 153);')
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(0,0,0,0)
         main_layout.setAlignment(Qt.AlignTop)
@@ -443,87 +450,176 @@ class BottomWindowNMT(QMainWindow):
         horisontal_layout = QHBoxLayout()
         horisontal_layout.setContentsMargins(10,5,10,5)
 
-        # Device ID line
-        device_id_layout = QHBoxLayout()
-        device_id_layout.setContentsMargins(10,5,10,0)
-        self.device_id_label = QLabel("Device ID:".ljust(25))
-        self.device_id_label.setStyleSheet('border:0px; font: bold 12px;')
-        device_id_layout.addWidget(self.device_id_label)
-        spacer = QSpacerItem(34, 0, QSizePolicy.Minimum, 0)
-        device_id_layout.addItem(spacer)
-        self.device_id_combobox = QComboBox()
-        self.device_id_combobox.setFixedWidth(400)
-        self.device_list = []
-        self.device_id_combobox.addItems(self.device_list)
-        self.device_id_combobox.activated.connect(self.device_combobox_activated)
-        device_id_layout.addWidget(self.device_id_combobox)
-        main_layout.addLayout(device_id_layout)
+        # COM Port Layout
+        com_layout = QHBoxLayout()
+        com_layout.setContentsMargins(10,5,10,0)
+        self.com_label = QLabel("Device COM Port:")
+        self.com_label.setStyleSheet('border:0px; font: bold 12px;')
+        com_layout.addWidget(self.com_label)
+        self.com_combobox = QComboBox()
+        self.com_combobox.setFixedWidth(100)
+        self.com_ports_list = ["PORT"]
+        ports = p.comports()
+        for port in ports:
+            self.com_ports_list.append(port.device)
+        self.com_combobox.addItems(self.com_ports_list)
+        self.com_combobox.activated.connect(self.com_combobox_activated)
+        com_layout.addWidget(self.com_combobox)
 
-        # CMD line
-        cmd_layout = QHBoxLayout()
-        cmd_layout.setContentsMargins(10,5,10,0)
-        self.cmd_label = QLabel("Command:".ljust(25))
-        self.cmd_label.setStyleSheet('border:0px; font: bold 12px;')
-        cmd_layout.addWidget(self.cmd_label)
-        spacer = QSpacerItem(1, 0, QSizePolicy.Minimum, 0)
-        cmd_layout.addItem(spacer)
+        main_layout.addLayout(com_layout)
+
+        # NMT Layout
+        nmt_layout = QHBoxLayout()
+        nmt_layout.setContentsMargins(10,5,10,0)
+        self.nmt_label = QLabel("NMT:")
+        self.nmt_label.setStyleSheet('border:0px; font: bold 12px;')
+        nmt_layout.addWidget(self.nmt_label)
+        self.device_id_combobox = QComboBox()
+        self.device_id_combobox.setFixedWidth(100)
+        self.device_id_combobox.addItems(self.device_list)
+        # self.device_id_combobox.activated.connect(self.device_combobox_activated)
+        nmt_layout.addWidget(self.device_id_combobox)
         self.cmd_combobox = QComboBox()
-        self.cmd_combobox.setFixedWidth(400)
+        self.cmd_combobox.setFixedWidth(150)
         cmd_list = ["Go to Reset Device", "Go to Reset Com.","Go to Pre-Operational", "Go to Operational", "Go to Stopped"]
         self.cmd_combobox.addItems(cmd_list)
-        self.cmd_combobox.activated.connect(self.cmd_combobox_activated)
-        cmd_layout.addWidget(self.cmd_combobox)
-        main_layout.addLayout(cmd_layout)
+        # self.cmd_combobox.activated.connect(self.cmd_combobox_activated)
+        nmt_layout.addWidget(self.cmd_combobox)
+        self.send_btn = QPushButton("SEND")
+        self.send_btn.setStyleSheet("background-color: rgb(224, 224, 224);")
+        self.send_btn.setFixedSize(120, 18)
+        self.send_btn.pressed.connect(self.nmt_send_command)
+        nmt_layout.addWidget(self.send_btn)
+        main_layout.addLayout(nmt_layout)
 
-        # Button line
-        btn_layout = QHBoxLayout()
-        btn_layout.setContentsMargins(10,5,10,10)
-        btn_layout.setAlignment(Qt.AlignLeft)
-        send_btn = QPushButton("SEND COMMAND")
-        send_btn.setStyleSheet("background-color: rgb(224, 224, 224);")
-        send_btn.setFixedSize(120, 40)
-        send_btn.pressed.connect(self.send_command)
-        btn_layout.addWidget(send_btn)
-        main_layout.addLayout(btn_layout)
-        
+         # HEARTBEAT
+        heartbeat_layout = QHBoxLayout()
+        heartbeat_layout.setContentsMargins(10,5,10,0)
+        self.heartbeat_label = QLabel("HEARTBEAT:")
+        self.heartbeat_label.setStyleSheet('border:0px; font: bold 12px;')
+        heartbeat_layout.addWidget(self.heartbeat_label)
+        self.heartbeat_combobox = QComboBox()
+        self.heartbeat_combobox.setFixedWidth(100)
+        self.heartbeat_combobox.addItems(self.device_list)
+        heartbeat_layout.addWidget(self.heartbeat_combobox)        
+        self.heartbeat_line = QLineEdit()
+        self.heartbeat_line.setFixedWidth(150)
+        heartbeat_layout.addWidget(self.heartbeat_line)
+        self.heartbeat_button = QPushButton("START")
+        self.heartbeat_button.setStyleSheet("background-color: rgb(224, 224, 224);")
+        self.heartbeat_button.pressed.connect(self.heartbeat_button_pressed)
+        self.heartbeat_button.setFixedSize(120, 18)
+        heartbeat_layout.addWidget(self.heartbeat_button)
+        main_layout.addLayout(heartbeat_layout)
+
+        # SYNC
+        sync_layout = QHBoxLayout()
+        sync_layout.setContentsMargins(10,5,10,0)
+        self.sync_label = QLabel("SYNC:")
+        self.sync_label.setStyleSheet('border:0px; font: bold 12px;')
+        sync_layout.addWidget(self.sync_label)
+        self.sync_line = QLineEdit()
+        self.sync_line.setFixedWidth(150)
+        sync_layout.addWidget(self.sync_line)
+        self.sync_button = QPushButton("START")
+        self.sync_button.setStyleSheet("background-color: rgb(224, 224, 224);")
+        self.sync_button.pressed.connect(self.sync_button_pressed)
+        self.sync_button.setFixedSize(120, 18)
+        sync_layout.addWidget(self.sync_button)
+        main_layout.addLayout(sync_layout)
+
+
         widget = QWidget()
         widget.setLayout(main_layout)
         self.setCentralWidget(widget)
 
     def update_device_list(self):
         self.device_id_combobox.clear()
+        self.heartbeat_combobox.clear()
         self.device_id_combobox.addItems(self.device_list)
+        self.heartbeat_combobox.addItems(self.device_list)
 
-    def cmd_combobox_activated(self):
+    # def cmd_combobox_activated(self):
+    #     match self.cmd_combobox.currentText():
+    #         case "Go to Reset Device":
+    #             self.cmd = 0x81
+    #         case "Go to Reset Com.":
+    #             self.cmd = 0x82
+    #         case "Go to Pre-Operational":
+    #             self.cmd = 0x80
+    #         case "Go to Operational":
+    #             self.cmd = 0x01
+    #         case _:
+    #             self.cmd = 0x02
+    
+    # def device_combobox_activated(self):
+    #     if self.device_id_combobox.currentText() == "All":
+    #         self.destination = 0x0
+    #     else:
+    #         self.destination = int(self.device_id_combobox.currentText())
+
+    def nmt_send_command(self):
+        if self.device_id_combobox.currentText() == 'All':
+            device_id = '00'
+        else:
+            device_id = f'{int(self.device_id_combobox.currentText()):02x}'
+
         match self.cmd_combobox.currentText():
             case "Go to Reset Device":
-                self.cmd = 0x81
+                nmt_cmd = '81'
             case "Go to Reset Com.":
-                self.cmd = 0x82
+                nmt_cmd = '82'
             case "Go to Pre-Operational":
-                self.cmd = 0x80
+                nmt_cmd = '80'
             case "Go to Operational":
-                self.cmd = 0x01
+                nmt_cmd = '01'
             case _:
-                self.cmd = 0x02
-    
-    def device_combobox_activated(self):
-        if self.device_id_combobox.currentText() == "All":
-            self.destination = 0x0
+                nmt_cmd = '02'
+        
+        msg = f'cmd_nmt_{nmt_cmd}_{device_id}'
+        print(msg)
+
+    def com_combobox_activated(self):
+        pass
+
+    def heartbeat_button_pressed(self):
+        if self.heartbeat_combobox.currentText() == 'All':
+            device_id = '00'
         else:
-            self.destination = int(self.device_id_combobox.currentText())
+            device_id = f'{int(self.heartbeat_combobox.currentText()):02x}'
 
-    def send_command(self):
-        self.cobid = 0x0
-        self.data = [self.cmd, self.destination]
+        if self.heartbeat_line.text() == '':
+            period_time = '0000'
+        else:
+            if self.heartbeat_line.text().isnumeric():
+                period_time = f'{int(self.heartbeat_line.text()):04x}'
+            else:
+                print("ERROR: Incorrect HEARTBEAT input")
+                period_time = '0000'
 
-        msg = can.Message(arbitration_id=self.cobid, data=self.data, is_extended_id=False)
-        try:
-            self.bus.send(msg)
-            print(f"NMT Message sent: {msg.arbitration_id:03x} {msg.data}")
-            sleep(0.01)
-        except can.CanError:
-            print("NMT Message was not sent")
+        msg = f'cmd_heartbeat_{device_id}_{period_time}'
+        print(msg)
+
+    def sync_button_pressed(self):
+        delay = 0
+        if self.sync_button.text() == "START":
+            if self.sync_line.text().isnumeric():
+                delay = int(self.sync_line.text())
+                
+                msg = f'cmd_sync_start_{delay:04x}'
+                print(msg)
+
+                self.sync_button.setText("STOP")
+                self.sync_button.setStyleSheet("background-color: rgb(255, 128, 128);")
+        else:
+            if self.sync_button.text() == "STOP":
+                
+                self.sync_line.setText('')
+                msg = f'cmd_sync_stop'
+                print(msg)
+
+                self.sync_button.setText("START")
+                self.sync_button.setStyleSheet("background-color: rgb(224, 224, 224);")
         
 
 class BottomWindowSDO(QMainWindow):
