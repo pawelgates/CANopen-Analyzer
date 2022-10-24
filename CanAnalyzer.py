@@ -712,24 +712,35 @@ class BottomWindowSDO(QMainWindow):
         node = self.network.add_node(self.selected_node, 'PEAK.eds')
         index = int(self.entry_combobox.currentText()[2:6], 16)
         subindex = int(self.entry_sub_index_combobox.currentText())
-
-        if self.cmd_combobox.currentText() == "READ":
-            data = node.sdo.upload(index, subindex)
-            sleep(0.05)
-            print(data)
-
-        if self.cmd_combobox.currentText() == "WRITE":
-            if index == 0x1010:
-                data = int(self.data_textbox.text(), 16)
-                data_bytes = data.to_bytes(4, 'little')
-            elif index == 0x1017:
-                data = int(self.data_textbox.text())
-                data_bytes = data.to_bytes(2, 'little')
-
-            print(data_bytes)
-            node.sdo.download(index, subindex, data_bytes)
-            sleep(0.05)
         
+        try:
+            if self.cmd_combobox.currentText() == "READ":
+                data = node.sdo.upload(index, subindex)
+                sleep(0.05)
+                print(data)
+        except canopen.sdo.exceptions.SdoCommunicationError:
+            print("ERROR: No SDO Response")
+            msg = QMessageBox()
+            msg.setText("ERROR: No SDO Response")
+            msg.exec_()
+
+        try:
+            if self.cmd_combobox.currentText() == "WRITE":
+                if index == 0x1010:
+                    data = int(self.data_textbox.text(), 16)
+                    data_bytes = data.to_bytes(4, 'little')
+                elif index == 0x1017:
+                    data = int(self.data_textbox.text())
+                    data_bytes = data.to_bytes(2, 'little')
+                print(data_bytes)
+                node.sdo.download(index, subindex, data_bytes)
+                sleep(0.05)
+        except canopen.sdo.exceptions.SdoCommunicationError:
+            print("ERROR: No SDO Response")
+            msg = QMessageBox()
+            msg.setText("ERROR: No SDO Response")
+            msg.exec_()
+            
 
     # def btn_chkmsg_pressed(self):
     #     # COB ID
