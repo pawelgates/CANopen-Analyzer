@@ -56,7 +56,6 @@ SDO_ENTRY_LIST = [
             "0x6426     Analog Input Value Difference"
             ]
 
-
 class MsgSdo:
     cobid = None
     cmd = None
@@ -76,10 +75,6 @@ class MainWindow(QMainWindow):
         # Buttons config
         layout_buttons = QHBoxLayout()
 
-        # self.connection_window = ConnectionWindow(self.buttons_enable)
-        # layout_buttons.addWidget(self.connection_window)
-
-        # self.device_connected = self.connection_window.device_connected
         self.selected_device = None
         self.selected_bitrate = 1000000
 
@@ -140,8 +135,6 @@ class MainWindow(QMainWindow):
         self.window_nmt = BottomWindowNMT()
         self.window_sdo = BottomWindowSDO()
         self.window_pdo = BottomWindowPDO()
-        self.window_sync = WindowSYNC()
-        self.window_m0 = WindowM0()
         self.spacer = QSpacerItem(20, 200, QSizePolicy.Minimum, QSizePolicy.Minimum)
         
         layout_buttons.setAlignment(Qt.AlignLeft)
@@ -160,15 +153,9 @@ class MainWindow(QMainWindow):
         layout_bottom_left.addWidget(self.window_nmt)
         layout_bottom_left.addWidget(self.window_sdo)
         layout_bottom_left.addWidget(self.window_pdo)
-        # layout_bottom_left.addWidget(self.window_sync)
-        # layout_bottom_left.addWidget(self.window_m0)
         layout_bottom_left.addItem(self.spacer)
         
-
-        
-        layout_bottom.addLayout(layout_bottom_left)
-        # layout_bottom.setAlignment(Qt.AlignTop)
-        
+        layout_bottom.addLayout(layout_bottom_left)        
 
         layout_main.addLayout(layout_bottom)
         
@@ -182,12 +169,10 @@ class MainWindow(QMainWindow):
             self.btn_start.setText("START")
             self.notifier = can.Notifier(self.bus, self.listeners, 0.5)
             self.window_pdo.setEnabled(True)
-            self.window_sync.setEnabled(True)
         else:
             self.window_scanbus.read_enable = True
             self.btn_start.setText("STOP")
             self.window_pdo.setEnabled(False)
-            self.window_sync.setEnabled(False)
             self.notifier.stop()
             self.window_scanbus.send_to_thread()
             ## TODO: FIX Double Start press fault
@@ -209,7 +194,6 @@ class MainWindow(QMainWindow):
         self.window_sdo.setEnabled(True)
         self.window_nmt.setEnabled(True)
         self.window_pdo.setEnabled(True)
-        self.window_sync.setEnabled(True)
 
     # SCAN PCAN Devices
     def pcan_devices(self):
@@ -243,7 +227,6 @@ class MainWindow(QMainWindow):
                 self.selected_bitrate = 125000
                 QApplication.processEvents()
 
-    
     def button_connect_pressed(self):
         try:
             print(f"Device: {self.selected_device}")
@@ -259,44 +242,32 @@ class MainWindow(QMainWindow):
             self.window_pdo.bus = self.bus
             self.window_sdo.network = network
             self.window_pdo.network = network
-            self.window_sync.network = network
-            # listeners = [can.Printer()] + network.listeners
             self.listeners = network.listeners
             self.notifier = can.Notifier(self.bus, self.listeners, 0.5)
-
             # Detecting nodes
             network.scanner.search()
-            # We may need to wait a short while here to allow all nodes to respond
             sleep(0.05)
             node_list = []
             for node_id in network.scanner.nodes:
                 node_list.append(str(node_id))
-            # print(f"Detected nodes: {node_list.sort()}")
             node_list.sort()
             nmt_node_list = node_list.copy()
             nmt_node_list.insert(0, "All")
-
-            # self.notifier.stop()
-
             self.window_pdo.device_list = node_list
             self.window_sdo.device_list = node_list
             self.window_nmt.device_list = nmt_node_list
-            self.window_sync.device_list = nmt_node_list
             self.window_nmt.update_device_list()
             self.window_pdo.update_device_list()
             self.window_sdo.update_device_list()
-            self.window_sync.update_device_list()
-
             self.btn_connect.setHidden(True)
-            
         except:
             print("BUS connection FAILED\n")
             msg = QMessageBox()
             msg.setText("Connection FAILED")
             erer = msg.exec_()
 
-class WorkerScanBus(QObject):
 
+class WorkerScanBus(QObject):
     finished = pyqtSignal()
     gui_update = pyqtSignal(object, object)
 
@@ -317,11 +288,11 @@ class BottomWindowScanBus(QMainWindow):
         self.setEnabled(True)
 
         self.msg_dict = {}
-
         self.read_enable = False
         self.bus = None
+
+        # Table Widget
         self.tableWidget = QTableWidget()
-        
         self.tableWidget.setRowCount(1) 
         self.tableWidget.setColumnCount(5)
         names = ["Count", "Msg Type", "Device ID", "Raw Data", "Data"]
@@ -332,9 +303,6 @@ class BottomWindowScanBus(QMainWindow):
         self.tableWidget.setColumnWidth(2, 100)
         self.tableWidget.setColumnWidth(3, 300)
         self.tableWidget.setColumnWidth(4, 698)
-        
-        # CAN Bus
-        self.bus = None
 
         self.setCentralWidget(self.tableWidget)
     
@@ -390,12 +358,9 @@ class BottomWindowScanBus(QMainWindow):
             # Data col
             data_item = QTableWidgetItem(msg_dict[sorted_keys[i]].data)
             data_item.setFont(FONT_BOLD)
-            # data_item.setTextAlignment(Qt.AlignCenter)
             self.tableWidget.setItem(i, 4, data_item)
-            #QApplication.processEvents()
 
     def read_from_bus(self):
-        # self.bus = can.interface.Bus(bustype='pcan', channel=self.selected_device, bitrate=self.selected_bitrate, can_filters=None)    ####################### from init
         self.msg_dict = {}
         while self.read_enable:
             msg = self.bus.recv()
@@ -406,10 +371,8 @@ class BottomWindowScanBus(QMainWindow):
                 decoder = CanOpenDecoder()
                 decoder.decode_cob_id(msg.arbitration_id)
                 decoder.decode_data(msg.data)
-
                 message_id = msg.arbitration_id
                 message_data = decoder.return_data()
-
                 if message_id in self.msg_dict:
                     self.msg_dict[message_id].data = message_data.data
                     self.msg_dict[message_id].raw_data = message_data.raw_data
@@ -418,7 +381,6 @@ class BottomWindowScanBus(QMainWindow):
                     self.msg_dict[message_id] = message_data
                 sorted_keys = sorted(list(self.msg_dict.keys()))
                 self.tableWidget.setRowCount(len(sorted_keys))
-
                 self.bus_worker.gui_update.emit(sorted_keys, self.msg_dict)
                 print(f"{msg.arbitration_id:03x} {msg.data}")
 
@@ -430,16 +392,9 @@ class BottomWindowNMT(QMainWindow):
         self.setStyleSheet('border:1px solid rgb(124, 124, 124);')
         self.setEnabled(True)
         
-        self.device_list = []
-        # UART BAUDRATE
+        # INIT VALUES
         self.baudrate = 230400
-
-        # CAN Vars
-        self.cobid = 0
-        self.data = 0
-        self.cmd = 0x81
-        self.destination = 0
-
+        self.device_list = []
         self.bus = None
 
         self.name = QLabel("Master Device Config")
@@ -467,7 +422,6 @@ class BottomWindowNMT(QMainWindow):
         self.com_combobox.addItems(self.com_ports_list)
         self.com_combobox.activated.connect(self.com_combobox_activated)
         com_layout.addWidget(self.com_combobox)
-
         main_layout.addLayout(com_layout)
 
         # NMT Layout
@@ -480,13 +434,11 @@ class BottomWindowNMT(QMainWindow):
         self.device_id_combobox = QComboBox()
         self.device_id_combobox.setFixedWidth(100)
         self.device_id_combobox.addItems(self.device_list)
-        # self.device_id_combobox.activated.connect(self.device_combobox_activated)
         nmt_layout.addWidget(self.device_id_combobox)
         self.cmd_combobox = QComboBox()
         self.cmd_combobox.setFixedWidth(150)
         cmd_list = ["Go to Reset Device", "Go to Reset Com.","Go to Pre-Operational", "Go to Operational", "Go to Stopped"]
         self.cmd_combobox.addItems(cmd_list)
-        # self.cmd_combobox.activated.connect(self.cmd_combobox_activated)
         nmt_layout.addWidget(self.cmd_combobox)
         self.send_btn = QPushButton("SEND")
         self.send_btn.setStyleSheet("background-color: rgb(224, 224, 224);")
@@ -541,7 +493,6 @@ class BottomWindowNMT(QMainWindow):
         self.sync_line.setEnabled(False)
         self.sync_button.setEnabled(False)
 
-
         widget = QWidget()
         widget.setLayout(main_layout)
         self.setCentralWidget(widget)
@@ -551,25 +502,6 @@ class BottomWindowNMT(QMainWindow):
         self.heartbeat_combobox.clear()
         self.device_id_combobox.addItems(self.device_list)
         self.heartbeat_combobox.addItems(self.device_list)
-
-    # def cmd_combobox_activated(self):
-    #     match self.cmd_combobox.currentText():
-    #         case "Go to Reset Device":
-    #             self.cmd = 0x81
-    #         case "Go to Reset Com.":
-    #             self.cmd = 0x82
-    #         case "Go to Pre-Operational":
-    #             self.cmd = 0x80
-    #         case "Go to Operational":
-    #             self.cmd = 0x01
-    #         case _:
-    #             self.cmd = 0x02
-    
-    # def device_combobox_activated(self):
-    #     if self.device_id_combobox.currentText() == "All":
-    #         self.destination = 0x0
-    #     else:
-    #         self.destination = int(self.device_id_combobox.currentText())
 
     def com_combobox_activated(self):
         # CHECK COM PORT SELECTION
@@ -597,11 +529,12 @@ class BottomWindowNMT(QMainWindow):
                 print("No response from M0")
 
     def nmt_send_command(self):
+        # Device Number
         if self.device_id_combobox.currentText() == 'All':
             device_id = '00'
         else:
             device_id = f'{int(self.device_id_combobox.currentText()):02x}'
-
+        # NMT command
         match self.cmd_combobox.currentText():
             case "Go to Reset Device":
                 nmt_cmd = '81'
@@ -613,17 +546,17 @@ class BottomWindowNMT(QMainWindow):
                 nmt_cmd = '01'
             case _:
                 nmt_cmd = '02'
-        
+        # MSG
         msg = f'cmd_nmt_{nmt_cmd}_{device_id}'
         print(msg)
 
-
     def heartbeat_button_pressed(self):
+        # Device Number
         if self.heartbeat_combobox.currentText() == 'All':
             device_id = '00'
         else:
             device_id = f'{int(self.heartbeat_combobox.currentText()):02x}'
-
+        # Heartbeat Period
         if self.heartbeat_line.text() == '':
             period_time = '0000'
         else:
@@ -632,12 +565,13 @@ class BottomWindowNMT(QMainWindow):
             else:
                 print("ERROR: Incorrect HEARTBEAT input")
                 period_time = '0000'
-
+        # MSG
         msg = f'cmd_heartbeat_{device_id}_{period_time}'
         print(msg)
 
     def sync_button_pressed(self):
         delay = 0
+        # SYNC start
         if self.sync_button.text() == "START":
             if self.sync_line.text().isnumeric():
                 delay = int(self.sync_line.text())
@@ -647,6 +581,7 @@ class BottomWindowNMT(QMainWindow):
 
                 self.sync_button.setText("STOP")
                 self.sync_button.setStyleSheet("background-color: rgb(255, 128, 128);")
+        # SYNC stop 
         else:
             if self.sync_button.text() == "STOP":
                 
@@ -756,7 +691,6 @@ class BottomWindowSDO(QMainWindow):
             subentries_list.append(str(i))
         self.entry_sub_index_combobox.addItems(subentries_list)
         entry_sub_layout.addWidget(self.entry_sub_index_combobox)
-
         main_layout.addLayout(entry_sub_layout)
 
         # Data line
@@ -769,38 +703,13 @@ class BottomWindowSDO(QMainWindow):
         self.data_textbox.setMaxLength(8)
         self.data_textbox.setFixedWidth(400)
         self.data_textbox.setEnabled(False)
-        
         data_layout.addWidget(self.data_textbox)
-        
         main_layout.addLayout(data_layout)
 
-        # # Table widget
-        # table_layout = QHBoxLayout()
-        # table_layout.setContentsMargins(10,5,10,0)
-        # self.table = QTableWidget()
-        # self.table.setRowCount(1) 
-        # self.table.setColumnCount(6)
-        # names = ["COB ID", "", "CMD", "ENTRY", "SUB-ENTRY", "DATA"]
-        # self.table.setHorizontalHeaderLabels(names)
-        # self.table.verticalHeader().hide()
-        # self.table.setColumnWidth(0, 100)
-        # self.table.setColumnWidth(1, 58)
-        # self.table.setColumnWidth(2, 60)
-        # self.table.setColumnWidth(3, 80)
-        # self.table.setColumnWidth(4, 80)
-        # self.table.setColumnWidth(5, 200)
-        # table_layout.addWidget(self.table)
-        # main_layout.addLayout(table_layout)
-        
         # Send Button
         btn_layout = QHBoxLayout()
         btn_layout.setAlignment(Qt.AlignLeft)
         btn_layout.setContentsMargins(10,5,10,10)
-        # self.btn_chkmsg = QPushButton("CHECK MSG")
-        # self.btn_chkmsg.setStyleSheet("background-color: rgb(224, 224, 224);")
-        # self.btn_chkmsg.setFixedSize(120, 40)
-        # self.btn_chkmsg.pressed.connect(self.btn_chkmsg_pressed)
-        # btn_layout.addWidget(self.btn_chkmsg)
         self.btn_sendmsg = QPushButton("SEND SDO")
         self.btn_sendmsg.setStyleSheet("background-color: rgb(224, 224, 224);")
         self.btn_sendmsg.setFixedSize(120, 40)
@@ -873,87 +782,6 @@ class BottomWindowSDO(QMainWindow):
             msg.setText("ERROR: No SDO Response")
             msg.exec_()
             
-
-    # def btn_chkmsg_pressed(self):
-    #     # COB ID
-    #     cobid = 0x600 + int(self.device_id_combobox.currentText())
-    #     self.cobid = cobid
-        
-    #     # ENTRY
-    #     try:
-    #         entry_hex = int(self.entry_combobox.currentText()[:6], 16)
-    #         print(hex(entry_hex))
-    #         entry_str = str(hex(entry_hex))[2:]
-    #         entry = entry_str[2:] + entry_str[:2]
-    #         self.index1 = int(entry_str[2:], 16)
-    #         self.index2 = int(entry_str[:2], 16)
-    #     except:
-    #         msg = QMessageBox()
-    #         msg.setText("Entry Index Error")
-    #         msg.exec_()
-    #         return 0
-
-    #     # ENTRY SUB
-    #     try:
-    #         entry_sub_hex = int(self.entry_sub_index_combobox.currentText())
-    #         if entry_sub_hex > 0xff:
-    #             msg = QMessageBox()
-    #             msg.setText("Entry SUB Index Error")
-    #             msg.exec_()
-    #             return 0
-    #         entry_sub_str = str(hex(entry_sub_hex))[2:]
-    #         self.subindex = int(entry_sub_hex)
-    #     except:
-    #         msg = QMessageBox()
-    #         msg.setText("Entry SUB Index Error")
-    #         msg.exec_()
-    #         return 0
-
-    #     # DATA
-    #     try:
-    #         data1 = int(self.data_textbox.text()[-2:], 16)
-    #         data2 = int(self.data_textbox.text()[-4:-2], 16)
-    #         data3 = int(self.data_textbox.text()[-6:-4], 16)
-    #         data4 = int(self.data_textbox.text()[-8:-6], 16)
-            
-    #         data = self.data_textbox.text()[-2:] + self.data_textbox.text()[-4:-2] + self.data_textbox.text()[-6:-4] + self.data_textbox.text()[-8:-6]
-            
-    #         self.data1 = data1
-    #         self.data2 = data2
-    #         self.data3 = data3
-    #         self.data4 = data4
-    #     except:
-    #         msg = QMessageBox()
-    #         msg.setText("Data Error")
-    #         msg.exec_()
-    #         return 0
-
-    #     # CMD
-    #     cmd = self.cmd_combobox.currentText()[2:4]
-    #     self.cmd = int(cmd, 16)
-        
-    #     # Table 
-    #     item = QTableWidgetItem(f"{hex(cobid)}")
-    #     item.setFont(FONT_BOLD)
-    #     item.setTextAlignment(Qt.AlignCenter)
-    #     self.table.setItem(0, 0, item)
-    #     item = QTableWidgetItem(cmd)
-    #     item.setFont(FONT_BOLD)
-    #     item.setTextAlignment(Qt.AlignCenter)
-    #     self.table.setItem(0, 2, item)
-    #     item = QTableWidgetItem(entry)
-    #     item.setFont(FONT_BOLD)
-    #     item.setTextAlignment(Qt.AlignCenter)
-    #     self.table.setItem(0, 3, item)
-    #     item = QTableWidgetItem(entry_sub_str.rjust(2, '0'))
-    #     item.setFont(FONT_BOLD)
-    #     item.setTextAlignment(Qt.AlignCenter)
-    #     self.table.setItem(0, 4, item)
-    #     item = QTableWidgetItem(data)
-    #     item.setFont(FONT_BOLD)
-    #     item.setTextAlignment(Qt.AlignCenter)
-    #     self.table.setItem(0, 5, item)
-        
 
 class BottomWindowPDO(QMainWindow):
     def __init__(self):
@@ -1033,7 +861,6 @@ class BottomWindowPDO(QMainWindow):
         table_layout.addWidget(self.table)
         main_layout.addLayout(table_layout)
     
-
         # ENABLE Buttons
         enable_layout = QHBoxLayout()
         enable_layout.setContentsMargins(10,5,10,5)
@@ -1068,7 +895,6 @@ class BottomWindowPDO(QMainWindow):
         self.PDO4_checkbox.setStyleSheet('border:0px; font: 12px;')
         self.PDO4_checkbox.toggled.connect(self.checkbox_pdo4_activated)
         enable_layout.addWidget(self.PDO4_checkbox)
-        
         main_layout.addLayout(enable_layout)
 
         # Update Button
@@ -1082,7 +908,6 @@ class BottomWindowPDO(QMainWindow):
         btn_layout.addWidget(send_btn)
         main_layout.addLayout(btn_layout)
 
-        
         widget = QWidget()
         widget.setLayout(main_layout)
         self.setCentralWidget(widget)
@@ -1091,7 +916,6 @@ class BottomWindowPDO(QMainWindow):
         try:
             self.device_id_combobox_activated()
             node = self.network.add_node(self.selected_node, 'PEAK.eds')
-            
             if self.PDO1_checkbox.isChecked() == True:
                 if self.entry_combobox.currentText() == "Transmit PDO":
                     # enable the TPDO
@@ -1105,7 +929,6 @@ class BottomWindowPDO(QMainWindow):
                     pdo_en = int.from_bytes(pdo_en, 'little') - 0x80000000
                     pdo_dis_bytes = pdo_en.to_bytes(4, byteorder='little')
                     node.sdo.download(0x1400, 1, pdo_dis_bytes)
-
                 self.table.item(0,0).setBackground(COLOR_WHITE)
                 self.table.item(0,1).setBackground(COLOR_WHITE)
                 self.table.item(0,2).setBackground(COLOR_WHITE)
@@ -1124,7 +947,6 @@ class BottomWindowPDO(QMainWindow):
                     pdo_dis = 0x80000000 | int.from_bytes(pdo_dis, 'little')
                     pdo_dis_bytes = pdo_dis.to_bytes(4, byteorder='little')
                     node.sdo.download(0x1400, 1, pdo_dis_bytes)
-
                 self.table.item(0,0).setBackground(COLOR_RED)
                 self.table.item(0,1).setBackground(COLOR_RED)       
                 self.table.item(0,2).setBackground(COLOR_RED)       
@@ -1137,7 +959,6 @@ class BottomWindowPDO(QMainWindow):
         try:
             self.device_id_combobox_activated()
             node = self.network.add_node(self.selected_node, 'PEAK.eds')
-
             if self.PDO2_checkbox.isChecked() == True:
                 if self.entry_combobox.currentText() == "Transmit PDO":
                     # enable the TPDO
@@ -1151,7 +972,6 @@ class BottomWindowPDO(QMainWindow):
                     pdo_en = int.from_bytes(pdo_en, 'little') - 0x80000000
                     pdo_dis_bytes = pdo_en.to_bytes(4, byteorder='little')
                     node.sdo.download(0x1401, 1, pdo_dis_bytes)
-
                 self.table.item(1,0).setBackground(COLOR_WHITE)
                 self.table.item(1,1).setBackground(COLOR_WHITE)
                 self.table.item(1,2).setBackground(COLOR_WHITE)
@@ -1170,7 +990,6 @@ class BottomWindowPDO(QMainWindow):
                     pdo_dis = 0x80000000 | int.from_bytes(pdo_dis, 'little')
                     pdo_dis_bytes = pdo_dis.to_bytes(4, byteorder='little')
                     node.sdo.download(0x1401, 1, pdo_dis_bytes)
-
                 self.table.item(1,0).setBackground(COLOR_RED) 
                 self.table.item(1,1).setBackground(COLOR_RED)   
                 self.table.item(1,2).setBackground(COLOR_RED)   
@@ -1184,7 +1003,6 @@ class BottomWindowPDO(QMainWindow):
         try:
             self.device_id_combobox_activated()
             node = self.network.add_node(self.selected_node, 'PEAK.eds')
-
             if self.PDO3_checkbox.isChecked() == True:
                 if self.entry_combobox.currentText() == "Transmit PDO":
                     # enable the TPDO
@@ -1198,7 +1016,6 @@ class BottomWindowPDO(QMainWindow):
                     pdo_en = int.from_bytes(pdo_en, 'little') - 0x80000000
                     pdo_dis_bytes = pdo_en.to_bytes(4, byteorder='little')
                     node.sdo.download(0x1402, 1, pdo_dis_bytes)
-
                 self.table.item(2,0).setBackground(COLOR_WHITE)
                 self.table.item(2,1).setBackground(COLOR_WHITE)
                 self.table.item(2,2).setBackground(COLOR_WHITE)
@@ -1217,7 +1034,6 @@ class BottomWindowPDO(QMainWindow):
                     pdo_dis = 0x80000000 | int.from_bytes(pdo_dis, 'little')
                     pdo_dis_bytes = pdo_dis.to_bytes(4, byteorder='little')
                     node.sdo.download(0x1402, 1, pdo_dis_bytes)
-
                 self.table.item(2,0).setBackground(COLOR_RED) 
                 self.table.item(2,1).setBackground(COLOR_RED) 
                 self.table.item(2,2).setBackground(COLOR_RED) 
@@ -1230,7 +1046,6 @@ class BottomWindowPDO(QMainWindow):
         try:
             self.device_id_combobox_activated()
             node = self.network.add_node(self.selected_node, 'PEAK.eds')
-
             if self.PDO4_checkbox.isChecked() == True:
                 if self.entry_combobox.currentText() == "Transmit PDO":
                     # enable the TPDO
@@ -1244,7 +1059,6 @@ class BottomWindowPDO(QMainWindow):
                     pdo_en = int.from_bytes(pdo_en, 'little') - 0x80000000
                     pdo_dis_bytes = pdo_en.to_bytes(4, byteorder='little')
                     node.sdo.download(0x1403, 1, pdo_dis_bytes)
-
                 self.table.item(3,0).setBackground(COLOR_WHITE)
                 self.table.item(3,1).setBackground(COLOR_WHITE)
                 self.table.item(3,2).setBackground(COLOR_WHITE)
@@ -1263,7 +1077,6 @@ class BottomWindowPDO(QMainWindow):
                     pdo_dis = 0x80000000 | int.from_bytes(pdo_dis, 'little')
                     pdo_dis_bytes = pdo_dis.to_bytes(4, byteorder='little')
                     node.sdo.download(0x1403, 1, pdo_dis_bytes)
-
                 self.table.item(3,0).setBackground(COLOR_RED) 
                 self.table.item(3,1).setBackground(COLOR_RED)
                 self.table.item(3,2).setBackground(COLOR_RED)
@@ -1276,7 +1089,6 @@ class BottomWindowPDO(QMainWindow):
         self.device_id_combobox.clear()
         self.device_id_combobox.addItems(self.device_list)
         
-
     def device_id_combobox_activated(self):
         self.selected_node = int(self.device_id_combobox.currentText())
     
@@ -1284,7 +1096,6 @@ class BottomWindowPDO(QMainWindow):
         try:
             self.device_id_combobox_activated()
             node = self.network.add_node(self.selected_node, 'PEAK.eds')
-            
             # TPDO / RPDO print
             if self.entry_combobox.currentText() == "Transmit PDO":
                 for i in range(4):
@@ -1293,7 +1104,6 @@ class BottomWindowPDO(QMainWindow):
                     item.setFont(FONT_BOLD)
                     item.setTextAlignment(Qt.AlignCenter)
                     self.table.setItem(i, 0, item)
-                    
                     # SYNC Print
                     index = 0x1800+i
                     sync_type = node.sdo.upload(index, 2)
@@ -1337,7 +1147,6 @@ class BottomWindowPDO(QMainWindow):
                     new_item.setFont(FONT_BOLD)
                     # new_item.setTextAlignment(Qt.AlignCenter)
                     self.table.setItem(i, 4, new_item)
-
                 for i in range(4):
                     # CHECK ENABLE
                     index = 0x1800+i
@@ -1353,7 +1162,6 @@ class BottomWindowPDO(QMainWindow):
                         pdo_enable_list[i].setChecked(True)
                         bg_change_func[i]()
                     sleep(0.05)
-            
             else:
                 for i in range(4):
                     # NAME Print
@@ -1424,7 +1232,6 @@ class BottomWindowPDO(QMainWindow):
         node = self.network.add_node(self.selected_node, 'PEAK.eds')
         enabled_pdo = [self.PDO1_checkbox.isChecked(), self.PDO2_checkbox.isChecked(), self.PDO3_checkbox.isChecked(), self.PDO4_checkbox.isChecked()]
         print(enabled_pdo)
-
         if self.entry_combobox.currentText() == "Transmit PDO":
             for i in range(4):
                 if enabled_pdo[i] == False:
@@ -1478,7 +1285,6 @@ class BottomWindowPDO(QMainWindow):
                     index = 0x1a00 + i
                     node.sdo.download(index, 0, entries_num_bytes)
                     sleep(0.05)
-        
         else:
             for i in range(4):
                 if enabled_pdo[i] == False:
@@ -1521,251 +1327,7 @@ class BottomWindowPDO(QMainWindow):
                     node.sdo.download(index, 0, entries_num_bytes)
                     sleep(0.05)
 
-
-class WindowSYNC(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setFixedSize(600, 100)
-        self.setStyleSheet('border:1px solid rgb(124, 124, 124);')
-        self.setEnabled(False)
-
-        # CAN BUS
-        self.bus = None
-        self.network = None
-        self.listener = None
-        self.notifier = None
-
-        self.name = QLabel("SYNC and HEARTBEAT")
-        self.name.setStyleSheet('font: bold 14px; border: 1px solid rgb(124, 124, 124); padding: 5px;background-color: rgb(255, 255, 204);')
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(0,0,0,0)
-        main_layout.setAlignment(Qt.AlignTop)
-        main_layout.addWidget(self.name)
-
-        horisontal_layout = QHBoxLayout()
-        horisontal_layout.setContentsMargins(10,5,10,5)
-
-        # SYNC
-        sync_layout = QHBoxLayout()
-        sync_layout.setContentsMargins(10,5,10,0)
-        self.sync_label = QLabel("SYNC:")
-        self.sync_label.setStyleSheet('border:0px; font: bold 12px;')
-        sync_layout.addWidget(self.sync_label)
-        self.sync_line = QLineEdit()
-        self.sync_line.setFixedWidth(100)
-        sync_layout.addWidget(self.sync_line)
-        self.sync_button = QPushButton("START")
-        self.sync_button.setStyleSheet("background-color: rgb(224, 224, 224);")
-        self.sync_button.pressed.connect(self.sync_button_pressed)
-        self.sync_button.setFixedSize(120, 18)
-        sync_layout.addWidget(self.sync_button)
-        main_layout.addLayout(sync_layout)
-
-        # HEARTBEAT
-        heartbeat_layout = QHBoxLayout()
-        heartbeat_layout.setContentsMargins(10,5,10,0)
-        self.heartbeat_label = QLabel("HEARTBEAT:")
-        self.heartbeat_label.setStyleSheet('border:0px; font: bold 12px;')
-        heartbeat_layout.addWidget(self.heartbeat_label)
-        self.heartbeat_combobox = QComboBox()
-        self.heartbeat_combobox.setFixedWidth(150)
-        self.device_list = []
-        self.heartbeat_combobox.addItems(self.device_list)
-        self.heartbeat_combobox.activated.connect(self.heartbeat_combobox_activated)
-        heartbeat_layout.addWidget(self.heartbeat_combobox)
-        
-        self.heartbeat_line = QLineEdit()
-        self.heartbeat_line.setFixedWidth(100)
-        heartbeat_layout.addWidget(self.heartbeat_line)
-        self.heartbeat_button = QPushButton("START")
-        self.heartbeat_button.setStyleSheet("background-color: rgb(224, 224, 224);")
-        self.heartbeat_button.pressed.connect(self.heartbeat_button_pressed)
-        self.heartbeat_button.setFixedSize(120, 18)
-        heartbeat_layout.addWidget(self.heartbeat_button)
-        main_layout.addLayout(heartbeat_layout)
-
-        widget = QWidget()
-        widget.setLayout(main_layout)
-        self.setCentralWidget(widget)
-        
-    def heartbeat_combobox_activated(self):
-        pass
-
-    def update_device_list(self):
-        self.heartbeat_combobox.clear()
-        self.heartbeat_combobox.addItems(self.device_list)
-
-    def heartbeat_button_pressed(self):
-        try:
-            delay = 0
-            if self.heartbeat_combobox.currentText() == "All":
-                print(self.device_list)
-                for i in range(len(self.device_list)-1):
-                    node = self.network.add_node(int(self.device_list[i+1]), 'PEAK.eds')
-                    if self.heartbeat_line.text().isnumeric():
-                        delay = int(self.heartbeat_line.text())
-                    delay_bytes = delay.to_bytes(2, byteorder='little')
-                    node.sdo.download(0x1017, 0, delay_bytes)
-                    sleep(0.05)
-            else:
-                node = self.network.add_node(int(self.heartbeat_combobox.currentText()), 'PEAK.eds')
-                if self.heartbeat_line.text().isnumeric():
-                    delay = int(self.heartbeat_line.text())
-                delay_bytes = delay.to_bytes(2, byteorder='little')
-                node.sdo.download(0x1017, 0, delay_bytes)
-                sleep(0.05)
-        except canopen.sdo.exceptions.SdoCommunicationError:
-            print("ERROR: No SDO Response")
-            msg = QMessageBox()
-            msg.setText("ERROR: No SDO Response")
-            msg.exec_()
-        
-
-    def sync_button_pressed(self):
-        try:
-            delay = 0
-            if self.sync_button.text() == "START":
-                
-                if self.sync_line.text().isnumeric():
-                    delay = int(self.sync_line.text())
-                    print(delay)
-                    self.network.sync.start(delay/1000)
-                    self.sync_button.setText("STOP")
-                    self.sync_button.setStyleSheet("background-color: rgb(255, 128, 128);")
-                else:
-                    self.network.sync.stop()
-            else:
-                if self.sync_button.text() == "STOP":
-                    self.network.sync.stop()
-                    self.sync_button.setText("START")
-                    self.sync_button.setStyleSheet("background-color: rgb(224, 224, 224);")
-        except canopen.sdo.exceptions.SdoCommunicationError:
-            print("ERROR: No SDO Response")
-            msg = QMessageBox()
-            msg.setText("ERROR: No SDO Response")
-            msg.exec_()
-
-
-class WindowM0(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setFixedSize(600, 75)
-        self.setStyleSheet('border:1px solid rgb(124, 124, 124);')
-        self.setEnabled(True)
-
-        # UART BAUDRATE
-        self.baudrate = 230400
-
-        # CAN BUS
-        self.bus = None
-        self.network = None
-        self.listener = None
-        self.notifier = None
-
-        self.name = QLabel("M0 Config")
-        self.name.setStyleSheet('font: bold 14px; border: 1px solid rgb(124, 124, 124); padding: 5px;background-color: rgb(255, 153, 153);')
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(0,0,0,0)
-        main_layout.setAlignment(Qt.AlignTop)
-        main_layout.addWidget(self.name)
-
-        horisontal_layout = QHBoxLayout()
-        horisontal_layout.setContentsMargins(10,5,10,5)
-
-        # CMD
-        cmd_layout = QHBoxLayout()
-        cmd_layout.setContentsMargins(10,5,10,0)
-        self.com_label = QLabel("CMD:")
-        self.com_label.setStyleSheet('border:0px; font: bold 12px;')
-        cmd_layout.addWidget(self.com_label)
-
-        self.com_combobox = QComboBox()
-        self.com_combobox.setFixedWidth(100)
-        self.com_ports_list = ["PORT"]
-        ports = p.comports()
-        for port in ports:
-            self.com_ports_list.append(port.device)
-        self.com_combobox.addItems(self.com_ports_list)
-        self.com_combobox.activated.connect(self.com_combobox_activated)
-        cmd_layout.addWidget(self.com_combobox)
-
-        self.cmd_combobox = QComboBox()
-        self.cmd_combobox.setEnabled(False)
-        self.cmd_combobox.setFixedWidth(150)
-        self.cmd_list = []
-        try:
-            with open('cmd_list.txt', 'r') as f:
-                for line in f:
-                    if line.strip() != '':
-                        cmd = line.replace('\n', '')
-                        self.cmd_list.append(cmd)
-        except FileNotFoundError:
-            print("ERROR: cmd_list.txt FILE NOT FOUND")
-        self.cmd_combobox.addItems(self.cmd_list)
-        self.cmd_combobox.activated.connect(self.cmd_combobox_activated)
-        cmd_layout.addWidget(self.cmd_combobox)
-        
-        self.arg_line = QLineEdit()
-        self.arg_line.setEnabled(False)
-        self.arg_line.setFixedWidth(150)
-        cmd_layout.addWidget(self.arg_line)
-
-        self.send_button = QPushButton("SEND CMD")
-        self.send_button.setEnabled(False)
-        self.send_button.setStyleSheet("background-color: rgb(224, 224, 224);")
-        self.send_button.pressed.connect(self.send_button_pressed)
-        self.send_button.setFixedSize(120, 18)
-        cmd_layout.addWidget(self.send_button)
-        main_layout.addLayout(cmd_layout)
-
-        widget = QWidget()
-        widget.setLayout(main_layout)
-        self.setCentralWidget(widget)
-        
-    def com_combobox_activated(self):
-        # CHECK COM PORT SELECTION
-        selected_port = self.com_combobox.currentText()
-        if selected_port != "PORT":
-            port = Serial(f'{selected_port}', self.baudrate, timeout=0.3)
-            #TODO: CREATE PROPER CMD
-            command = ('cmd_hs' + '\r\n').encode()
-            port.write(command)
-            sleep(0.8)
-            resp = port.read_all().decode()
-            port.close()
-            #TODO: CHECK PROPER RESP
-            print(f'RESP: {resp}')
-            if "OK" in resp:
-                self.cmd_combobox.setEnabled(True)
-                self.arg_line.setEnabled(True)
-                self.send_button.setEnabled(True)
-            else:
-                print("No response from M0")
-
-    def cmd_combobox_activated(self):
-        pass
-
-    def send_button_pressed(self):
-        print("BUTTON PUSHED")
-        # COM PORT
-        selected_port = self.com_combobox.currentText()
-        # CMD
-        selected_cmd = self.cmd_combobox.currentText()
-        # ARGS
-        selected_arg = self.arg_line.text()
-        # SEND CMD
-        port = Serial(f'{selected_port}', self.baudrate, timeout=0.3)
-        if selected_arg == "":
-            command = (f'{selected_cmd}\r\n').encode()
-        else:
-            command = (f'{selected_cmd} {selected_arg}\r\n').encode()
-        port.write(command)
-        sleep(0.8)
-        resp = port.read_all().decode()
-        port.close()
-        print(resp)
-        
-    
+ 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
