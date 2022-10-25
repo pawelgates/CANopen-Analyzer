@@ -1,5 +1,3 @@
-
-from re import T
 import sys, can, canopen
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -393,7 +391,8 @@ class BottomWindowNMT(QMainWindow):
         self.setEnabled(True)
         
         # INIT VALUES
-        self.baudrate = 230400
+        # self.baudrate = 230400
+        self.baudrate = 115200
         self.device_list = []
         self.bus = None
 
@@ -432,7 +431,7 @@ class BottomWindowNMT(QMainWindow):
         self.nmt_label.setStyleSheet('border:0px; font: bold 12px;')
         nmt_layout.addWidget(self.nmt_label)
         self.device_id_combobox = QComboBox()
-        self.device_id_combobox.setFixedWidth(100)
+        self.device_id_combobox.setFixedWidth(118)
         self.device_id_combobox.addItems(self.device_list)
         nmt_layout.addWidget(self.device_id_combobox)
         self.cmd_combobox = QComboBox()
@@ -454,7 +453,7 @@ class BottomWindowNMT(QMainWindow):
         self.heartbeat_label.setStyleSheet('border:0px; font: bold 12px;')
         heartbeat_layout.addWidget(self.heartbeat_label)
         self.heartbeat_combobox = QComboBox()
-        self.heartbeat_combobox.setFixedWidth(100)
+        self.heartbeat_combobox.setFixedWidth(118)
         self.heartbeat_combobox.addItems(self.device_list)
         heartbeat_layout.addWidget(self.heartbeat_combobox)        
         self.heartbeat_line = QLineEdit()
@@ -511,7 +510,7 @@ class BottomWindowNMT(QMainWindow):
             #TODO: CREATE PROPER CMD
             command = ('cmd_hs' + '\r\n').encode()
             port.write(command)
-            sleep(0.8)
+            sleep(1)
             resp = port.read_all().decode()
             port.close()
             #TODO: CHECK PROPER RESP
@@ -529,68 +528,105 @@ class BottomWindowNMT(QMainWindow):
                 print("No response from M0")
 
     def nmt_send_command(self):
-        # Device Number
-        if self.device_id_combobox.currentText() == 'All':
-            device_id = '00'
+        if self.device_id_combobox.currentText() == '':
+            print("ERROR: Incorrect NMT input")
         else:
-            device_id = f'{int(self.device_id_combobox.currentText()):02x}'
-        # NMT command
-        match self.cmd_combobox.currentText():
-            case "Go to Reset Device":
-                nmt_cmd = '81'
-            case "Go to Reset Com.":
-                nmt_cmd = '82'
-            case "Go to Pre-Operational":
-                nmt_cmd = '80'
-            case "Go to Operational":
-                nmt_cmd = '01'
-            case _:
-                nmt_cmd = '02'
-        # MSG
-        msg = f'cmd_nmt_{nmt_cmd}_{device_id}'
-        print(msg)
+            # Device Number
+            if self.device_id_combobox.currentText() == 'All':
+                device_id = '00'
+            else:
+                device_id = f'{int(self.device_id_combobox.currentText()):02x}'
+            # NMT command
+            match self.cmd_combobox.currentText():
+                case "Go to Reset Device":
+                    nmt_cmd = '81'
+                case "Go to Reset Com.":
+                    nmt_cmd = '82'
+                case "Go to Pre-Operational":
+                    nmt_cmd = '80'
+                case "Go to Operational":
+                    nmt_cmd = '01'
+                case _:
+                    nmt_cmd = '02'
+            # MSG
+            msg = f'cmd_nmt_{nmt_cmd}_{device_id}'
+            print(msg)
+            # UART MSG
+            port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
+            command = (f'{msg}' + '\r\n').encode()
+            port.write(command)
+            sleep(1)
+            resp = port.read_all().decode()
+            print(resp)
+            port.close()
 
     def heartbeat_button_pressed(self):
-        # Device Number
-        if self.heartbeat_combobox.currentText() == 'All':
-            device_id = '00'
+        if self.heartbeat_line.text() == '' or self.heartbeat_combobox.currentText() == '':
+            print("ERROR: Incorrect HEARTBEAT input")
         else:
-            device_id = f'{int(self.heartbeat_combobox.currentText()):02x}'
-        # Heartbeat Period
-        if self.heartbeat_line.text() == '':
-            period_time = '0000'
-        else:
+            # Device Number
+            if self.heartbeat_combobox.currentText() == 'All':
+                device_id = '00'
+            else:
+                device_id = f'{int(self.heartbeat_combobox.currentText()):02x}'
             if self.heartbeat_line.text().isnumeric():
                 period_time = f'{int(self.heartbeat_line.text()):04x}'
             else:
                 print("ERROR: Incorrect HEARTBEAT input")
                 period_time = '0000'
-        # MSG
-        msg = f'cmd_heartbeat_{device_id}_{period_time}'
-        print(msg)
+            # MSG
+            msg = f'cmd_heartbeat_{device_id}_{period_time}'
+            print(msg)
+            # UART MSG
+            port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
+            command = (f'{msg}' + '\r\n').encode()
+            port.write(command)
+            sleep(1)
+            resp = port.read_all().decode()
+            print(resp)
+            port.close()
 
     def sync_button_pressed(self):
-        delay = 0
-        # SYNC start
-        if self.sync_button.text() == "START":
-            if self.sync_line.text().isnumeric():
-                delay = int(self.sync_line.text())
-                
-                msg = f'cmd_sync_start_{delay:04x}'
-                print(msg)
-
-                self.sync_button.setText("STOP")
-                self.sync_button.setStyleSheet("background-color: rgb(255, 128, 128);")
-        # SYNC stop 
+        if self.sync_line.text() == '':
+            print("ERROR: Incorrect SYNC input")
         else:
-            if self.sync_button.text() == "STOP":
-                
-                self.sync_line.setText('')
-                msg = f'cmd_sync_stop'
-                print(msg)
+            delay = 0
+            # SYNC start
+            if self.sync_button.text() == "START":
+                if self.sync_line.text().isnumeric():
+                    delay = int(self.sync_line.text())
+                    
+                    msg = f'cmd_sync_start_{delay:04x}'
+                    print(msg)
+                    # UART MSG
+                    port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
+                    command = (f'{msg}' + '\r\n').encode()
+                    port.write(command)
+                    sleep(1)
+                    resp = port.read_all().decode()
+                    print(resp)
+                    port.close()
 
-                self.sync_button.setText("START")
-                self.sync_button.setStyleSheet("background-color: rgb(224, 224, 224);")
+                    self.sync_button.setText("STOP")
+                    self.sync_button.setStyleSheet("background-color: rgb(255, 128, 128);")
+            # SYNC stop 
+            else:
+                if self.sync_button.text() == "STOP":
+                    
+                    self.sync_line.setText('')
+                    msg = f'cmd_sync_stop'
+                    print(msg)
+                    # UART MSG
+                    port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
+                    command = (f'{msg}' + '\r\n').encode()
+                    port.write(command)
+                    sleep(1)
+                    resp = port.read_all().decode()
+                    print(resp)
+                    port.close()
+
+                    self.sync_button.setText("START")
+                    self.sync_button.setStyleSheet("background-color: rgb(224, 224, 224);")
         
 
 class BottomWindowSDO(QMainWindow):
@@ -857,7 +893,7 @@ class BottomWindowPDO(QMainWindow):
         self.table.setColumnWidth(1, 60)
         self.table.setColumnWidth(2, 60)
         self.table.setColumnWidth(3, 60)
-        self.table.setColumnWidth(4, 336)
+        self.table.setColumnWidth(4, 338)
         table_layout.addWidget(self.table)
         main_layout.addLayout(table_layout)
     
