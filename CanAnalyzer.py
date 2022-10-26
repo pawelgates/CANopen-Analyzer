@@ -610,7 +610,7 @@ class BottomWindowNMT(QMainWindow):
                     port.close()
 
                     self.sync_button.setText("STOP")
-                    self.sync_button.setStyleSheet("background-color: rgb(255, 128, 128);")
+                    self.sync_button.setStyleSheet("QPushButton {background-color: rgb(255, 128, 128);} QPushButton:hover {background-color: rgb(255, 150, 150); border: 1px solid #49545a; }")
             # SYNC stop 
             else:
                 if self.sync_button.text() == "STOP":
@@ -628,7 +628,7 @@ class BottomWindowNMT(QMainWindow):
                     port.close()
 
                     self.sync_button.setText("START")
-                    self.sync_button.setStyleSheet("background-color: rgb(224, 224, 224);")
+                    self.sync_button.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #CED4DA; border: 1px solid #49545a; }")
         
 
 class BottomWindowSDO(QMainWindow):
