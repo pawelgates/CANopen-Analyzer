@@ -1,2 +1,0 @@
-cmd_hs
-cmd_help

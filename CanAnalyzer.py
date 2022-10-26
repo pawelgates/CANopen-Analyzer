@@ -1,3 +1,4 @@
+from msilib.schema import Error
 import sys, can, canopen
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -260,9 +261,7 @@ class MainWindow(QMainWindow):
             self.btn_connect.setHidden(True)
         except:
             print("BUS connection FAILED\n")
-            msg = QMessageBox()
-            msg.setText("Connection FAILED")
-            erer = msg.exec_()
+            ErrorMessage("BUS connection failed")
 
 
 class WorkerScanBus(QObject):
@@ -530,6 +529,7 @@ class BottomWindowNMT(QMainWindow):
     def nmt_send_command(self):
         if self.device_id_combobox.currentText() == '':
             print("ERROR: Incorrect NMT input")
+            ErrorMessage("Incorrect NMT input")
         else:
             # Device Number
             if self.device_id_combobox.currentText() == 'All':
@@ -563,6 +563,7 @@ class BottomWindowNMT(QMainWindow):
     def heartbeat_button_pressed(self):
         if self.heartbeat_line.text() == '' or self.heartbeat_combobox.currentText() == '':
             print("ERROR: Incorrect HEARTBEAT input")
+            ErrorMessage("Incorrect HEARTBEAT input")
         else:
             # Device Number
             if self.heartbeat_combobox.currentText() == 'All':
@@ -589,6 +590,7 @@ class BottomWindowNMT(QMainWindow):
     def sync_button_pressed(self):
         if self.sync_line.text() == '':
             print("ERROR: Incorrect SYNC input")
+            ErrorMessage("Incorrect SYNC input")
         else:
             delay = 0
             # SYNC start
@@ -797,9 +799,7 @@ class BottomWindowSDO(QMainWindow):
                 print(data)
         except canopen.sdo.exceptions.SdoCommunicationError:
             print("ERROR: No SDO Response")
-            msg = QMessageBox()
-            msg.setText("ERROR: No SDO Response")
-            msg.exec_()
+            WarningMessage("No SDO Response")
 
         try:
             if self.cmd_combobox.currentText() == "WRITE":
@@ -814,9 +814,7 @@ class BottomWindowSDO(QMainWindow):
                 sleep(0.05)
         except canopen.sdo.exceptions.SdoCommunicationError:
             print("ERROR: No SDO Response")
-            msg = QMessageBox()
-            msg.setText("ERROR: No SDO Response")
-            msg.exec_()
+            WarningMessage("No SDO Response")
             
 
 class BottomWindowPDO(QMainWindow):
@@ -1259,9 +1257,7 @@ class BottomWindowPDO(QMainWindow):
                     sleep(0.05)
         except canopen.sdo.exceptions.SdoCommunicationError:
             print("ERROR: No SDO Response")
-            msg = QMessageBox()
-            msg.setText("ERROR: No SDO Response")
-            msg.exec_()
+            WarningMessage("No SDO Response")
     
     def update_pdo_pressed(self):
         self.device_id_combobox_activated()
@@ -1363,6 +1359,22 @@ class BottomWindowPDO(QMainWindow):
                     node.sdo.download(index, 0, entries_num_bytes)
                     sleep(0.05)
 
+
+class ErrorMessage:
+    def __init__(self, error_text):
+        pop_msg = QMessageBox()
+        pop_msg.setIcon(QMessageBox.Critical)
+        pop_msg.setWindowTitle("Error Message")
+        pop_msg.setText(f'{error_text}'.ljust(50))
+        pop_msg.exec()
+
+class WarningMessage:
+    def __init__(self, warning_text):
+        pop_msg = QMessageBox()
+        pop_msg.setIcon(QMessageBox.Warning)
+        pop_msg.setWindowTitle("Warning Message")
+        pop_msg.setText(f'{warning_text}'.ljust(50))
+        pop_msg.exec()
  
 
 if __name__ == "__main__":
