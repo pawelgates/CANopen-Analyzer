@@ -439,7 +439,7 @@ class BottomWindowNMT(QMainWindow):
         self.cmd_combobox.addItems(cmd_list)
         nmt_layout.addWidget(self.cmd_combobox)
         self.send_btn = QPushButton("SEND")
-        self.send_btn.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #cccccc; border: 1px #83b0e1; }")
+        self.send_btn.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #CED4DA; border: 1px solid #49545a; }")
         self.send_btn.setFixedSize(120, 18)
         self.send_btn.pressed.connect(self.nmt_send_command)
         nmt_layout.addWidget(self.send_btn)
@@ -459,7 +459,7 @@ class BottomWindowNMT(QMainWindow):
         self.heartbeat_line.setFixedWidth(150)
         heartbeat_layout.addWidget(self.heartbeat_line)
         self.heartbeat_button = QPushButton("START")
-        self.heartbeat_button.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #cccccc; border: 1px #83b0e1; }")
+        self.heartbeat_button.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #CED4DA; border: 1px solid #49545a; }")
         self.heartbeat_button.pressed.connect(self.heartbeat_button_pressed)
         self.heartbeat_button.setFixedSize(120, 18)
         heartbeat_layout.addWidget(self.heartbeat_button)
@@ -475,7 +475,7 @@ class BottomWindowNMT(QMainWindow):
         self.sync_line.setFixedWidth(150)
         sync_layout.addWidget(self.sync_line)
         self.sync_button = QPushButton("START")
-        self.sync_button.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #cccccc; border: 1px #83b0e1; }")
+        self.sync_button.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #CED4DA; border: 1px solid #49545a; }")
         self.sync_button.pressed.connect(self.sync_button_pressed)
         self.sync_button.setFixedSize(120, 18)
         sync_layout.addWidget(self.sync_button)
@@ -549,7 +549,7 @@ class BottomWindowNMT(QMainWindow):
                 case _:
                     nmt_cmd = '02'
             # MSG
-            msg = f'cmd_nmt_{nmt_cmd}_{device_id}'
+            msg = f'cmd_nmt_p{nmt_cmd}_p{device_id}'
             print(msg)
             # UART MSG
             port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
@@ -576,7 +576,7 @@ class BottomWindowNMT(QMainWindow):
                 print("ERROR: Incorrect HEARTBEAT input")
                 period_time = '0000'
             # MSG
-            msg = f'cmd_heartbeat_{device_id}_{period_time}'
+            msg = f'cmd_heartbeat_p{device_id}_p{period_time}'
             print(msg)
             # UART MSG
             port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
@@ -598,7 +598,7 @@ class BottomWindowNMT(QMainWindow):
                 if self.sync_line.text().isnumeric():
                     delay = int(self.sync_line.text())
                     
-                    msg = f'cmd_sync_start_{delay:04x}'
+                    msg = f'cmd_sync_start_p{delay:04x}'
                     print(msg)
                     # UART MSG
                     port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
@@ -749,7 +749,7 @@ class BottomWindowSDO(QMainWindow):
         btn_layout.setAlignment(Qt.AlignLeft)
         btn_layout.setContentsMargins(10,5,10,10)
         self.btn_sendmsg = QPushButton("SEND SDO")
-        self.btn_sendmsg.setStyleSheet("background-color: rgb(224, 224, 224);")
+        self.btn_sendmsg.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #CED4DA; border: 1px solid #49545a; }")
         self.btn_sendmsg.setFixedSize(120, 40)
         self.btn_sendmsg.pressed.connect(self.btn_sendmsg_pressed)
         btn_layout.addWidget(self.btn_sendmsg)
@@ -936,7 +936,7 @@ class BottomWindowPDO(QMainWindow):
         btn_layout.setContentsMargins(10,5,10,10)
         btn_layout.setAlignment(Qt.AlignLeft)
         send_btn = QPushButton("UPDATE PDO")
-        send_btn.setStyleSheet("background-color: rgb(224, 224, 224);")
+        send_btn.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #CED4DA; border: 1px solid #49545a; }")
         send_btn.setFixedSize(120, 40)
         send_btn.pressed.connect(self.update_pdo_pressed)
         btn_layout.addWidget(send_btn)
