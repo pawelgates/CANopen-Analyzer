@@ -391,7 +391,7 @@ class BottomWindowNMT(QMainWindow):
         
         # INIT VALUES
         # self.baudrate = 230400
-        self.baudrate = 115200
+        
         self.device_list = []
         self.bus = None
 
@@ -411,6 +411,17 @@ class BottomWindowNMT(QMainWindow):
         self.com_label = QLabel("Device COM Port:")
         self.com_label.setStyleSheet('border:0px; font: bold 12px;')
         com_layout.addWidget(self.com_label)
+        
+        self.baudrate_combobox = QComboBox()
+        self.baudrate_combobox.setFixedWidth(100)
+        self.baudrate_list = [
+            "BAUDRATE",
+            "115200",
+            "230400"
+        ]
+        self.baudrate_combobox.addItems(self.baudrate_list)
+        com_layout.addWidget(self.baudrate_combobox)
+
         self.com_combobox = QComboBox()
         self.com_combobox.setFixedWidth(100)
         self.com_ports_list = ["PORT"]
@@ -503,28 +514,33 @@ class BottomWindowNMT(QMainWindow):
 
     def com_combobox_activated(self):
         # CHECK COM PORT SELECTION
-        selected_port = self.com_combobox.currentText()
-        if selected_port != "PORT":
-            port = Serial(f'{selected_port}', self.baudrate, timeout=0.3)
-            #TODO: CREATE PROPER CMD
-            command = ('cmd_hs' + '\r\n').encode()
-            port.write(command)
-            sleep(1)
-            resp = port.read_all().decode()
-            port.close()
-            #TODO: CHECK PROPER RESP
-            print(f'RESP: {resp}')
-            if "OK" in resp:
-                self.device_id_combobox.setEnabled(True)
-                self.cmd_combobox.setEnabled(True)
-                self.send_btn.setEnabled(True)
-                self.heartbeat_combobox.setEnabled(True)
-                self.heartbeat_line.setEnabled(True)
-                self.heartbeat_button.setEnabled(True)
-                self.sync_line.setEnabled(True)
-                self.sync_button.setEnabled(True)
-            else:
-                print("No response from M0")
+        selected_baudrate = self.baudrate_combobox.currentText()
+        if selected_baudrate == "BAUDRATE":
+            ErrorMessage("Select BAUDRATE")
+        else:
+            selected_port = self.com_combobox.currentText()
+            selected_baudrate = int(selected_baudrate)
+            if selected_port != "PORT":
+                port = Serial(f'{selected_port}', selected_baudrate, timeout=0.3)
+                #TODO: CREATE PROPER CMD
+                command = ('cmd_hs' + '\r\n').encode()
+                port.write(command)
+                sleep(1)
+                resp = port.read_all().decode()
+                port.close()
+                #TODO: CHECK PROPER RESP
+                print(f'RESP: {resp}')
+                if "OK" in resp:
+                    self.device_id_combobox.setEnabled(True)
+                    self.cmd_combobox.setEnabled(True)
+                    self.send_btn.setEnabled(True)
+                    self.heartbeat_combobox.setEnabled(True)
+                    self.heartbeat_line.setEnabled(True)
+                    self.heartbeat_button.setEnabled(True)
+                    self.sync_line.setEnabled(True)
+                    self.sync_button.setEnabled(True)
+                else:
+                    print("No response from M0")
 
     def nmt_send_command(self):
         if self.device_id_combobox.currentText() == '':
@@ -579,7 +595,7 @@ class BottomWindowNMT(QMainWindow):
             msg = f'cmd_heartbeat_p{device_id}_p{period_time}'
             print(msg)
             # UART MSG
-            port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
+            port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
             command = (f'{msg}' + '\r\n').encode()
             port.write(command)
             sleep(1)
@@ -601,7 +617,7 @@ class BottomWindowNMT(QMainWindow):
                     msg = f'cmd_sync_start_p{delay:04x}'
                     print(msg)
                     # UART MSG
-                    port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
+                    port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
                     command = (f'{msg}' + '\r\n').encode()
                     port.write(command)
                     sleep(1)
@@ -619,7 +635,7 @@ class BottomWindowNMT(QMainWindow):
                     msg = f'cmd_sync_stop'
                     print(msg)
                     # UART MSG
-                    port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
+                    port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
                     command = (f'{msg}' + '\r\n').encode()
                     port.write(command)
                     sleep(1)
