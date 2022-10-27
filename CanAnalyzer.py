@@ -442,6 +442,7 @@ class BottomWindowNMT(QMainWindow):
         nmt_layout.addWidget(self.nmt_label)
         self.device_id_combobox = QComboBox()
         self.device_id_combobox.setFixedWidth(118)
+        self.device_list = ["All"]
         self.device_id_combobox.addItems(self.device_list)
         nmt_layout.addWidget(self.device_id_combobox)
         self.cmd_combobox = QComboBox()
@@ -565,10 +566,10 @@ class BottomWindowNMT(QMainWindow):
                 case _:
                     nmt_cmd = '02'
             # MSG
-            msg = f'cmd_nmt_p{nmt_cmd}_p{device_id}'
+            msg = f'cmd_nmt_{nmt_cmd}_{device_id}'
             print(msg)
             # UART MSG
-            port = Serial(f'{self.com_combobox.currentText()}', self.baudrate, timeout=0.3)
+            port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
             command = (f'{msg}' + '\r\n').encode()
             port.write(command)
             sleep(1)
@@ -592,7 +593,7 @@ class BottomWindowNMT(QMainWindow):
                 print("ERROR: Incorrect HEARTBEAT input")
                 period_time = '0000'
             # MSG
-            msg = f'cmd_heartbeat_p{device_id}_p{period_time}'
+            msg = f'cmd_heartbeat_{device_id}_{period_time}'
             print(msg)
             # UART MSG
             port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
@@ -614,7 +615,7 @@ class BottomWindowNMT(QMainWindow):
                 if self.sync_line.text().isnumeric():
                     delay = int(self.sync_line.text())
                     
-                    msg = f'cmd_sync_start_p{delay:04x}'
+                    msg = f'cmd_sync_start_{delay:04x}'
                     print(msg)
                     # UART MSG
                     port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
