@@ -615,7 +615,8 @@ class BottomWindowNMT(QMainWindow):
                 if self.sync_line.text().isnumeric():
                     delay = int(self.sync_line.text())
                     
-                    msg = f'cmd_sync_start_{delay:04x}'
+                    # msg = f'cmd_sync_start_{delay:04x}'
+                    msg = f'cmd_timer_cnfg'
                     print(msg)
                     # UART MSG
                     port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
@@ -625,15 +626,22 @@ class BottomWindowNMT(QMainWindow):
                     resp = port.read_all().decode()
                     print(resp)
                     port.close()
-
-                    self.sync_button.setText("STOP")
-                    self.sync_button.setStyleSheet("QPushButton {background-color: rgb(255, 128, 128);} QPushButton:hover {background-color: rgb(255, 150, 150); border: 1px solid #49545a; }")
+                    if "RDY" in resp:
+                        port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
+                        command = (f'{delay}' + '\r\n').encode()
+                        port.write(command)
+                        sleep(1)
+                        resp = port.read_all().decode()
+                        print(resp)
+                        self.sync_button.setText("STOP")
+                        self.sync_button.setStyleSheet("QPushButton {background-color: rgb(255, 128, 128);} QPushButton:hover {background-color: rgb(255, 150, 150); border: 1px solid #49545a; }")
             # SYNC stop 
             else:
                 if self.sync_button.text() == "STOP":
                     
                     self.sync_line.setText('')
-                    msg = f'cmd_sync_stop'
+                    # msg = f'cmd_sync_stop'
+                    msg = f'cmd_send_mcan_msg_prd'
                     print(msg)
                     # UART MSG
                     port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
@@ -643,9 +651,16 @@ class BottomWindowNMT(QMainWindow):
                     resp = port.read_all().decode()
                     print(resp)
                     port.close()
+                    if "RDY" in resp:
+                        port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
+                        command = (f'0' + '\r\n').encode()
+                        port.write(command)
+                        sleep(1)
+                        resp = port.read_all().decode()
+                        print(resp)
 
-                    self.sync_button.setText("START")
-                    self.sync_button.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #CED4DA; border: 1px solid #49545a; }")
+                        self.sync_button.setText("START")
+                        self.sync_button.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224);} QPushButton:hover {background-color: #CED4DA; border: 1px solid #49545a; }")
         
 
 class BottomWindowSDO(QMainWindow):
