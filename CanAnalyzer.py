@@ -543,6 +543,7 @@ class BottomWindowNMT(QMainWindow):
                 else:
                     print("No response from M0")
 
+
     def nmt_send_command(self):
         if self.device_id_combobox.currentText() == '':
             print("ERROR: Incorrect NMT input")
@@ -550,33 +551,52 @@ class BottomWindowNMT(QMainWindow):
         else:
             # Device Number
             if self.device_id_combobox.currentText() == 'All':
-                device_id = '00'
+                device_id = 0
             else:
-                device_id = f'{int(self.device_id_combobox.currentText()):02x}'
+                device_id = int(self.device_id_combobox.currentText())
             # NMT command
             match self.cmd_combobox.currentText():
                 case "Go to Reset Device":
-                    nmt_cmd = '81'
+                    nmt_cmd = 0x81
                 case "Go to Reset Com.":
-                    nmt_cmd = '82'
+                    nmt_cmd = 0x82
                 case "Go to Pre-Operational":
-                    nmt_cmd = '80'
+                    nmt_cmd = 0x80
                 case "Go to Operational":
-                    nmt_cmd = '01'
+                    nmt_cmd = 0x01
                 case _:
-                    nmt_cmd = '02'
+                    nmt_cmd = 0x02
             # MSG
-            msg = f'cmd_nmt_{nmt_cmd}_{device_id}'
+            msg = f'cmd_send_mcan_nmt'
             print(msg)
             # UART MSG
             port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
             command = (f'{msg}' + '\r\n').encode()
             port.write(command)
-            sleep(1)
+            sleep(0.1)
             resp = port.read_all().decode()
             print(resp)
             port.close()
-
+            if "RDY" in resp:
+                port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
+                command = (f'{nmt_cmd}' + '\r\n').encode()
+                port.write(command)
+                sleep(0.1)
+                resp = port.read_all().decode()
+                port.close()
+                print(resp)
+                if "OK" in resp:
+                    port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
+                    command = (f'{device_id}' + '\r\n').encode()
+                    port.write(command)
+                    sleep(0.1)
+                    resp = port.read_all().decode()
+                    port.close()
+                    print(resp)
+                    if "OK" in resp:
+                        print("NMT msg sent SUCCESSFULY")
+            
+        
     def heartbeat_button_pressed(self):
         if self.heartbeat_line.text() == '' or self.heartbeat_combobox.currentText() == '':
             print("ERROR: Incorrect HEARTBEAT input")
@@ -584,25 +604,44 @@ class BottomWindowNMT(QMainWindow):
         else:
             # Device Number
             if self.heartbeat_combobox.currentText() == 'All':
-                device_id = '00'
+                device_id = 0
             else:
-                device_id = f'{int(self.heartbeat_combobox.currentText()):02x}'
+                device_id = int(self.heartbeat_combobox.currentText())
             if self.heartbeat_line.text().isnumeric():
-                period_time = f'{int(self.heartbeat_line.text()):04x}'
+                period_time = int(self.heartbeat_line.text())
             else:
                 print("ERROR: Incorrect HEARTBEAT input")
-                period_time = '0000'
+                period_time = 0
             # MSG
-            msg = f'cmd_heartbeat_{device_id}_{period_time}'
+            msg = f'cmd_send_mcan_hb'
             print(msg)
             # UART MSG
             port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
             command = (f'{msg}' + '\r\n').encode()
             port.write(command)
-            sleep(1)
+            sleep(0.1)
             resp = port.read_all().decode()
             print(resp)
             port.close()
+            if "RDY" in resp:
+                port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
+                command = (f'{device_id}' + '\r\n').encode()
+                port.write(command)
+                sleep(0.1)
+                resp = port.read_all().decode()
+                port.close()
+                print(resp)
+                if "OK" in resp:
+                    port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
+                    command = (f'{period_time}' + '\r\n').encode()
+                    port.write(command)
+                    sleep(0.1)
+                    resp = port.read_all().decode()
+                    port.close()
+                    print(resp)
+                    if "OK" in resp:
+                        print("HEARTBEAT msg sent SUCCESSFULY")
+
 
     def sync_button_pressed(self):
         if self.sync_line.text() == '':
@@ -622,7 +661,7 @@ class BottomWindowNMT(QMainWindow):
                     port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
                     command = (f'{msg}' + '\r\n').encode()
                     port.write(command)
-                    sleep(1)
+                    sleep(0.1)
                     resp = port.read_all().decode()
                     print(resp)
                     port.close()
@@ -630,11 +669,22 @@ class BottomWindowNMT(QMainWindow):
                         port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
                         command = (f'{delay}' + '\r\n').encode()
                         port.write(command)
-                        sleep(1)
+                        sleep(0.1)
                         resp = port.read_all().decode()
+                        port.close()
                         print(resp)
-                        self.sync_button.setText("STOP")
-                        self.sync_button.setStyleSheet("QPushButton {background-color: rgb(255, 128, 128);} QPushButton:hover {background-color: rgb(255, 150, 150); border: 1px solid #49545a; }")
+                        if "OK" in resp:
+                            msg = f'cmd_send_mcan_sync'
+                            port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
+                            command = (f'{msg}' + '\r\n').encode()
+                            port.write(command)
+                            sleep(0.1)
+                            resp = port.read_all().decode()
+                            print(resp)
+                            port.close()
+                            self.sync_button.setText("STOP")
+                            self.sync_button.setStyleSheet("QPushButton {background-color: rgb(255, 128, 128);} QPushButton:hover {background-color: rgb(255, 150, 150); border: 1px solid #49545a; }")
+            
             # SYNC stop 
             else:
                 if self.sync_button.text() == "STOP":
@@ -647,7 +697,7 @@ class BottomWindowNMT(QMainWindow):
                     port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
                     command = (f'{msg}' + '\r\n').encode()
                     port.write(command)
-                    sleep(1)
+                    sleep(0.1)
                     resp = port.read_all().decode()
                     print(resp)
                     port.close()
@@ -655,7 +705,7 @@ class BottomWindowNMT(QMainWindow):
                         port = Serial(f'{self.com_combobox.currentText()}', int(self.baudrate_combobox.currentText()), timeout=0.3)
                         command = (f'0' + '\r\n').encode()
                         port.write(command)
-                        sleep(1)
+                        sleep(0.1)
                         resp = port.read_all().decode()
                         print(resp)
 
