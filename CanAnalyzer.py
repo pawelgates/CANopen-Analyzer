@@ -9,6 +9,7 @@ from infi.devicemanager import DeviceManager
 import threading
 import serial.tools.list_ports as p
 from serial import Serial
+import csv
 
 # QT Constants
 FONT_BOLD = QFont()
@@ -80,6 +81,8 @@ class MainWindow(QMainWindow):
         self.selected_device = None
         self.selected_bitrate = 1000000
 
+        self.log_btn_state = 0
+
         self.bus = None
         self.notifier = None
         self.listeners = None
@@ -134,6 +137,12 @@ class MainWindow(QMainWindow):
         layout_buttons.addWidget(self.btn_clear)
         self.btn_clear.setEnabled(False)
 
+        self.log_btn = QPushButton("REC DATA")
+        self.log_btn.setFixedSize(120, 60)
+        self.log_btn.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224); border: 1px solid #B0B0B0;} QPushButton:hover {background-color: rgb(255, 208, 208); border: 1px solid #49545a; }")
+        self.log_btn.pressed.connect(self.log_btn_pressed)
+        layout_buttons.addWidget(self.log_btn)
+
         self.window_nmt = BottomWindowNMT()
         self.window_sdo = BottomWindowSDO()
         self.window_pdo = BottomWindowPDO()
@@ -183,6 +192,19 @@ class MainWindow(QMainWindow):
         self.window_scanbus.tableWidget.clearContents()
         self.window_scanbus.tableWidget.setRowCount(0) 
         self.window_scanbus.msg_dict = {}
+
+    def log_btn_pressed(self):
+        if self.log_btn_state == 0:
+            self.log_btn_state = 1
+            self.window_scanbus.log_data_state = 1
+            self.log_btn.setText("STOP REC")
+            self.log_btn.setStyleSheet("QPushButton {background-color: rgb(255, 128, 128); border: 1px solid #49545a;} QPushButton:hover {background-color: rgb(255, 208, 208); border: 1px solid #49545a; }")
+        else:
+            self.log_btn_state = 0
+            self.window_scanbus.log_data_state = 0
+            self.log_btn.setText("REC DATA")
+            self.log_btn.setStyleSheet("QPushButton {background-color: rgb(224, 224, 224); border: 1px solid #B0B0B0;} QPushButton:hover {background-color: rgb(255, 208, 208); border: 1px solid #49545a; }")
+
 
     def main_window_height(self):
         return self.size().height()
@@ -290,6 +312,7 @@ class BottomWindowScanBus(QMainWindow):
         self.msg_dict = {}
         self.read_enable = False
         self.bus = None
+        self.log_data_state = 0
 
         # Table Widget
         self.tableWidget = QTableWidget()
@@ -385,10 +408,15 @@ class BottomWindowScanBus(QMainWindow):
                 print(f"{msg.arbitration_id:03x} {msg.data}")
                 
                 # LOG Data
-                log_data = decoder.return_log()
-                log_line = f"{log_data.timestamp} - Device {log_data.device_id} - {log_data.pdo_num} - {log_data.raw_data}"
-                with open('log_file.txt', 'a') as f:
-                    f.write(log_line)
+                if self.log_data_state == 1:
+                    log_data = decoder.return_log()
+                    # log_line = f"{log_data.timestamp} - Device {log_data.device_id} - {log_data.pdo_num} - {log_data.raw_data}\n"
+                    # with open('log_file.txt', 'a') as f:
+                    #     f.write(log_line)
+                    log_line = [log_data.timestamp, f'Device {log_data.device_id}', log_data.pdo_num, log_data.raw_data]
+                    with open('log_file.csv', 'a', encoding='UTF8', newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerow(log_line)
 
 
 class BottomWindowNMT(QMainWindow):
