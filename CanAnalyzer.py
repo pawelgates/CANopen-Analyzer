@@ -55,12 +55,15 @@ SDO_ENTRY_LIST = [
             "0x6426     Analog Input Value Difference"
             ]
 
+
 class MsgSdo:
     cobid = None
     cmd = None
     entry = None
     subentry = None
     data = None
+
+    
 
 # Subclass QMainWindow to customize your application's main window
 class MainWindow(QMainWindow):
@@ -380,6 +383,12 @@ class BottomWindowScanBus(QMainWindow):
                 self.tableWidget.setRowCount(len(sorted_keys))
                 self.bus_worker.gui_update.emit(sorted_keys, self.msg_dict)
                 print(f"{msg.arbitration_id:03x} {msg.data}")
+                
+                # LOG Data
+                log_data = decoder.return_log()
+                log_line = f"{log_data.timestamp} - Device {log_data.device_id} - {log_data.pdo_num} - {log_data.raw_data}"
+                with open('log_file.txt', 'a') as f:
+                    f.write(log_line)
 
 
 class BottomWindowNMT(QMainWindow):

@@ -1,5 +1,7 @@
 import io
 from rich.console import Console
+from datetime import datetime
+from time import sleep
 
 console = Console()
 
@@ -88,6 +90,11 @@ EMCY_ERROR_REG_DICT = {
 
 EMCY_ERROR_REG = list(EMCY_ERROR_REG_DICT.keys())
 
+class LogDataMsg:
+    timestamp = None
+    device_id = None
+    pdo_num = None
+    raw_data = None
 
 class CanOpenMsg:
     type = None
@@ -339,5 +346,15 @@ class CanOpenDecoder:
         msg.data = self.data
         msg.raw_data = f"{str(hex(self.cobid))}    {self.raw_data}"
         return msg
+
+    def return_log(self) -> LogDataMsg:
+        log_msg = LogDataMsg()
+        log_msg.device_id = self.id
+        dt = datetime.now()
+        ts = datetime.timestamp(dt)
+        log_msg.timestamp = ts
+        log_msg.pdo_num = self.type
+        log_msg.raw_data = self.raw_data
+        return log_msg
     
             
